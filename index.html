@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hành trình Hàng Châu</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#050505;color:#eee;font-family:Arial,sans-serif;overflow:hidden}
+body{display:grid;grid-template-rows:minmax(0,1fr) 64px}#stage{position:relative;min-height:0;display:grid;place-items:center;overflow:hidden}
+#stage img,#stage video{width:100%;height:100%;object-fit:contain;display:block;min-height:0}#stage>img,#stage>video{position:absolute;inset:0}
+#message{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:32px;background:#080808;color:#d9d9d9;font-size:clamp(18px,2vw,26px);line-height:1.6;z-index:2}#message[hidden]{display:none}
+nav{display:flex;gap:24px;justify-content:center;align-items:center;background:#111;border-top:1px solid #242424}button{font:600 15px Arial,sans-serif;border:1px solid #555;border-radius:6px;background:#242424;color:#fff;min-width:110px;padding:11px 22px;cursor:pointer}button:hover:not(:disabled){background:#383838}button:focus-visible{outline:3px solid #e9c086;outline-offset:3px}button:disabled{opacity:.28;cursor:default}#counter{min-width:106px;text-align:center;font-size:14px;color:#bbb;font-variant-numeric:tabular-nums}@media(max-width:500px){nav{gap:12px}button{min-width:90px}}
+</style>
+</head>
+<body>
+<main id="stage" aria-label="Nội dung slide"><div id="message">Nhấn Next để bắt đầu trình chiếu có âm thanh.</div></main>
+<nav aria-label="Chuyển slide"><button id="back" disabled>← Back</button><span id="counter" aria-live="polite"></span><button id="next">Next →</button></nav>
+<script>
+'use strict';
+const slides=[{"label":"01–03","src":"media/01-03.mp4","type":"video"},{"label":"04","src":"media/04.mp4","type":"video"},{"label":"05","src":"media/05.mp4","type":"video"},{"label":"06","src":"media/06.mp4","type":"video"},{"label":"07","src":"media/07.mp4","type":"video"},{"label":"08","src":"media/08.mp4","type":"video"},{"label":"09","src":"media/09.mp4","type":"video"},{"label":"10","src":"media/10.mp4","type":"video"},{"label":"11","src":"media/11.mp4","type":"video"},{"label":"12","src":"media/12.mp4","type":"video"},{"label":"13","src":"media/13.jpg","type":"image"},{"label":"14","src":"media/14.png","type":"image"},{"label":"15","src":"media/15.mp4","type":"video"},{"label":"16","src":"media/16.mp4","type":"video"},{"label":"17","src":"media/17.mp4","type":"video"},{"label":"18","src":"media/18.jpg","type":"image"},{"label":"19","src":"media/19.mp4","type":"video"}];
+const stage=document.getElementById('stage'),message=document.getElementById('message'),back=document.getElementById('back'),next=document.getElementById('next'),counter=document.getElementById('counter');
+let index=0,started=false,current=null,blocked=false,generation=0,preloaded=null;
+function status(){counter.textContent=`${index+1} / ${slides.length}`;back.disabled=!started||index===0;next.disabled=started&&!blocked&&index===slides.length-1;}
+function notice(text){message.textContent=text;message.hidden=false;}
+function dispose(){if(!current)return;if(current.tagName==='VIDEO'){current.pause();current.removeAttribute('src');current.load();}else current.removeAttribute('src');current.remove();current=null;}
+function create(i){const s=slides[i],media=document.createElement(s.type==='video'?'video':'img');
+ if(s.type==='video'){media.playsInline=true;media.preload='auto';media.controls=false;media.loop=false;media.disablePictureInPicture=true;}
+ else{media.alt='Slide '+s.label;media.decoding='async';}
+ media.src=encodeURI(s.src);return media;}
+function preload(i){if(preloaded&&preloaded.index!==i){const m=preloaded.media;m.removeAttribute('src');if(m.tagName==='VIDEO')m.load();preloaded=null;}if(i<slides.length&&!preloaded)preloaded={index:i,media:create(i)};}
+function show(i){generation++;const token=generation;dispose();index=i;blocked=false;message.hidden=true;const s=slides[index];
+ if(preloaded?.index===i){current=preloaded.media;preloaded=null;}else current=create(i);
+ const media=current;stage.prepend(media);
+ const fail=()=>{if(token===generation)notice('Không tải được slide '+s.label+'. Kiểm tra mạng rồi nhấn Back và Next để thử lại.');};
+ media.addEventListener('error',fail);if(media.tagName==='VIDEO'?media.error:media.complete&&!media.naturalWidth)fail();
+ if(s.type==='video'){
+  media.addEventListener('ended',()=>{if(token!==generation)return;media.pause();/* Keep this video element and its decoded final frame. Never advance automatically. */});
+  media.addEventListener('playing',()=>{if(token===generation&&!blocked)message.hidden=true;});
+  if(media.readyState<3)notice('Đang tải slide '+s.label+'…');
+  media.play().catch(()=>{if(token!==generation)return;blocked=true;notice('Trình duyệt đang chặn tự phát. Nhấn Next để phát video này.');status();});
+ }
+ preload(i+1);
+ status();
+}
+next.addEventListener('click',()=>{
+ if(!started){started=true;show(0);return;}
+ if(blocked&&current?.tagName==='VIDEO'){const media=current,token=generation;media.play().then(()=>{if(token!==generation)return;blocked=false;message.hidden=true;status();}).catch(()=>notice('Chưa phát được video. Nhấn Next để thử lại.'));return;}
+ if(index<slides.length-1)show(index+1);
+});
+back.addEventListener('click',()=>{if(started&&index>0)show(index-1);});
+status();preload(0);
+</script>
+</body>
+</html>
