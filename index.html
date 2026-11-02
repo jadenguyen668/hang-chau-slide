@@ -8,17 +8,17 @@
 body{display:grid;grid-template-rows:minmax(0,1fr) 64px}#stage{position:relative;min-height:0;display:grid;place-items:center;overflow:hidden}
 #stage img,#stage video{width:100%;height:100%;object-fit:contain;display:block;min-height:0}#stage>img,#stage>video{position:absolute;inset:0}
 #message{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:32px;background:#080808;color:#d9d9d9;font-size:clamp(18px,2vw,26px);line-height:1.6;z-index:2}#message[hidden]{display:none}
-nav{display:flex;gap:24px;justify-content:center;align-items:center;background:#111;border-top:1px solid #242424}button{font:600 15px Arial,sans-serif;border:1px solid #555;border-radius:6px;background:#242424;color:#fff;min-width:110px;padding:11px 22px;cursor:pointer}button:hover:not(:disabled){background:#383838}button:focus-visible{outline:3px solid #e9c086;outline-offset:3px}button:disabled{opacity:.28;cursor:default}#counter{min-width:106px;text-align:center;font-size:14px;color:#bbb;font-variant-numeric:tabular-nums}@media(max-width:500px){nav{gap:12px}button{min-width:90px}}
+nav{position:relative;display:flex;gap:24px;justify-content:center;align-items:center;background:#111;border-top:1px solid #242424}button{font:600 15px Arial,sans-serif;border:1px solid #555;border-radius:6px;background:#242424;color:#fff;min-width:110px;padding:11px 22px;cursor:pointer}button:hover:not(:disabled){background:#383838}button:focus-visible{outline:3px solid #e9c086;outline-offset:3px}button:disabled{opacity:.28;cursor:default}#counter{min-width:106px;text-align:center;font-size:14px;color:#bbb;font-variant-numeric:tabular-nums}#offline{position:absolute;right:16px;top:50%;transform:translateY(-50%);max-width:32%;text-align:right;font-size:13px;line-height:1.35;color:#9a9a9a;font-variant-numeric:tabular-nums}#offline.ok{color:#7fd08a}#offline.warn{color:#e9c086}#message small{display:block;margin-top:12px;font-size:.7em;color:#9a9a9a}@media(max-width:1000px){#offline{position:static;transform:none;max-width:40%}}@media(max-width:500px){nav{gap:12px}button{min-width:90px}}
 </style>
 </head>
 <body>
-<main id="stage" aria-label="Nội dung slide"><div id="message">Nhấn Next để bắt đầu trình chiếu có âm thanh.</div></main>
-<nav aria-label="Chuyển slide"><button id="back" disabled>← Back</button><span id="counter" aria-live="polite"></span><button id="next">Next →</button></nav>
+<main id="stage" aria-label="Nội dung slide"><div id="message"><div>Nhấn Next để bắt đầu trình chiếu có âm thanh.<small>Mở link sẵn trước giờ chiếu và đợi góc phải báo “✓ Đã lưu offline” để chiếu mượt, không cần mạng.</small></div></div></main>
+<nav aria-label="Chuyển slide"><button id="back" disabled>← Back</button><span id="counter" aria-live="polite"></span><button id="next">Next →</button><span id="offline" aria-live="polite"></span></nav>
 <script>
 'use strict';
-const slides=[{"label":"01–03","src":"media/01-03.mp4","type":"video"},{"label":"04","src":"media/04.mp4","type":"video"},{"label":"05","src":"media/05.mp4","type":"video"},{"label":"06","src":"media/06.mp4","type":"video"},{"label":"07","src":"media/07.mp4","type":"video"},{"label":"08","src":"media/08.mp4","type":"video"},{"label":"09","src":"media/09.mp4","type":"video"},{"label":"10","src":"media/10.mp4","type":"video"},{"label":"11","src":"media/11.mp4","type":"video"},{"label":"12","src":"media/12.mp4","type":"video"},{"label":"13","src":"media/13.jpg","type":"image"},{"label":"14","src":"media/14.png","type":"image"},{"label":"15","src":"media/15.mp4","type":"video"},{"label":"16","src":"media/16.mp4","type":"video"},{"label":"17","src":"media/17.mp4","type":"video"},{"label":"18","src":"media/18.jpg","type":"image"},{"label":"19","src":"media/19.mp4","type":"video"}];
+const slides=[{"label":"01–03","src":"media/01-03.mp4","type":"video","bytes":46137905},{"label":"04","src":"media/04.mp4","type":"video","bytes":8301027},{"label":"05","src":"media/05.mp4","type":"video","bytes":19878455},{"label":"06","src":"media/06.mp4","type":"video","bytes":14223418},{"label":"07","src":"media/07.mp4","type":"video","bytes":38780180},{"label":"08","src":"media/08.mp4","type":"video","bytes":6263079},{"label":"09","src":"media/09.mp4","type":"video","bytes":34961947},{"label":"10","src":"media/10.mp4","type":"video","bytes":20160608},{"label":"11","src":"media/11.mp4","type":"video","bytes":7822637},{"label":"12","src":"media/12.mp4","type":"video","bytes":1446853},{"label":"13","src":"media/13.jpg","type":"image","bytes":582048},{"label":"14","src":"media/14.png","type":"image","bytes":2858425},{"label":"15","src":"media/15.mp4","type":"video","bytes":16292496},{"label":"16","src":"media/16.mp4","type":"video","bytes":27716687},{"label":"17","src":"media/17.mp4","type":"video","bytes":34023852},{"label":"18","src":"media/18.jpg","type":"image","bytes":3440537},{"label":"19","src":"media/19.mp4","type":"video","bytes":27549791}];
 const stage=document.getElementById('stage'),message=document.getElementById('message'),back=document.getElementById('back'),next=document.getElementById('next'),counter=document.getElementById('counter');
-let index=0,started=false,current=null,blocked=false,generation=0,preloaded=null;
+let index=0,started=false,current=null,blocked=false,generation=0,preloaded=null,offlineReady=false;
 function status(){counter.textContent=`${index+1} / ${slides.length}`;back.disabled=!started||index===0;next.disabled=started&&!blocked&&index===slides.length-1;}
 function notice(text){message.textContent=text;message.hidden=false;}
 function dispose(){if(!current)return;if(current.tagName==='VIDEO'){current.pause();current.removeAttribute('src');current.load();}else current.removeAttribute('src');current.remove();current=null;}
@@ -38,7 +38,7 @@ function show(i){generation++;const token=generation;dispose();index=i;blocked=f
   if(media.readyState<3)notice('Đang tải slide '+s.label+'…');
   media.play().catch(()=>{if(token!==generation)return;blocked=true;notice('Trình duyệt đang chặn tự phát. Nhấn Next để phát video này.');status();});
  }
- preload(i+1);
+ if(offlineReady)preload(i+1);
  status();
 }
 next.addEventListener('click',()=>{
@@ -47,7 +47,32 @@ next.addEventListener('click',()=>{
  if(index<slides.length-1)show(index+1);
 });
 back.addEventListener('click',()=>{if(started&&index>0)show(index-1);});
-status();preload(0);
+const offline=document.getElementById('offline'),total=slides.reduce((n,s)=>n+s.bytes,0),mb=n=>Math.round(n/1e6);
+function offlineStatus(text,cls){offline.textContent=text;offline.className=cls||'';}
+async function saveOffline(){
+ if(!('serviceWorker' in navigator)||!window.caches)return;
+ try{await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;}catch{return;}
+ const cache=await caches.open("hang-chau-bf72ecb2");let saved=0,count=0;const missing=[];
+ for(const s of slides){if(await cache.match(s.src)){saved+=s.bytes;count++;}else missing.push(s);}
+ const progress=()=>offlineStatus(`Đang lưu offline ${count}/${slides.length} · ${mb(saved)}/${mb(total)} MB`);
+ if(missing.length){
+  navigator.storage?.persist?.().catch(()=>{});
+  const est=await navigator.storage?.estimate?.().catch(()=>null);
+  if(est&&est.quota-est.usage<total-saved){offlineStatus('⚠ Trình duyệt không đủ chỗ lưu offline (cần ~'+mb(total-saved)+' MB). Đừng dùng tab ẩn danh.','warn');return;}
+  progress();
+  for(const s of missing){
+   const r=await fetch(s.src).catch(()=>null),fail=()=>offlineStatus('⚠ Lưu offline bị gián đoạn. Kiểm tra mạng rồi tải lại trang để lưu tiếp.','warn');
+   if(!r||r.status!==200)return fail();
+   const before=saved;let last=0;
+   const body=r.body.pipeThrough(new TransformStream({transform(chunk,ctl){saved+=chunk.length;if(Date.now()-last>500){last=Date.now();progress();}ctl.enqueue(chunk);}}));
+   try{await cache.put(s.src,new Response(body,{headers:{'Content-Type':r.headers.get('Content-Type')||''}}));}catch{saved=before;return fail();}
+   saved=before+s.bytes;count++;progress();
+  }
+ }
+ offlineReady=true;offlineStatus('✓ Đã lưu offline · chiếu không cần mạng','ok');
+ if(!started)preload(0);else if(index<slides.length-1)preload(index+1);
+}
+status();saveOffline();
 </script>
 </body>
 </html>
