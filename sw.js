@@ -1,5 +1,5 @@
 // Serves saved slides from Cache Storage (with Range support for <video>) so the deck plays smoothly and offline.
-const CACHE="hang-chau-0dd6b1c4";
+const CACHE="hang-chau-v2";
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.add('./')).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('hang-chau-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{
@@ -8,10 +8,11 @@ self.addEventListener('fetch',e=>{
  e.respondWith(req.mode==='navigate'?page(req):media(req));
 });
 // Page: network first (3 s limit, so venue wifi without internet does not hang), saved copy otherwise.
+// no-cache: always ask GitHub whether the page changed, so a new version is never hidden by the browser's 10-minute cache.
 async function page(req){
  const cache=await caches.open(CACHE);
  try{
-  const r=await Promise.race([fetch(req),new Promise((_,reject)=>setTimeout(reject,3000))]);
+  const r=await Promise.race([fetch(req.url,{cache:'no-cache'}),new Promise((_,reject)=>setTimeout(reject,3000))]);
   if(r.ok&&!r.redirected)cache.put('./',r.clone());
   return r;
  }catch{return (await cache.match('./'))||Response.error();}
