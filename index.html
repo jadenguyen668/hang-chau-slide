@@ -5,41 +5,58 @@
 <title>Hành trình Hàng Châu</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#050505;color:#eee;font-family:Arial,sans-serif;overflow:hidden}
-body{display:grid;grid-template-rows:minmax(0,1fr) 64px}#stage{position:relative;min-height:0;display:grid;place-items:center;overflow:hidden}
-#stage img,#stage video{width:100%;height:100%;object-fit:contain;display:block;min-height:0}#stage>img,#stage>video{position:absolute;inset:0}
-#message{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:32px;background:#080808;color:#d9d9d9;font-size:clamp(18px,2vw,26px);line-height:1.6;z-index:2}#message[hidden]{display:none}
-nav{position:relative;display:flex;gap:24px;justify-content:center;align-items:center;background:#111;border-top:1px solid #242424}button{font:600 15px Arial,sans-serif;border:1px solid #555;border-radius:6px;background:#242424;color:#fff;min-width:110px;padding:11px 22px;cursor:pointer}button:hover:not(:disabled){background:#383838}button:focus-visible{outline:3px solid #e9c086;outline-offset:3px}button:disabled{opacity:.28;cursor:default}#counter{min-width:106px;text-align:center;font-size:14px;color:#bbb;font-variant-numeric:tabular-nums}#offline{position:absolute;right:16px;top:50%;transform:translateY(-50%);max-width:32%;text-align:right;font-size:13px;line-height:1.35;color:#9a9a9a;font-variant-numeric:tabular-nums}#offline.ok{color:#7fd08a}#offline.warn{color:#e9c086}#message small{display:block;margin-top:12px;font-size:.7em;color:#9a9a9a}@media(max-width:1000px){#offline{position:static;transform:none;max-width:40%}}@media(max-width:500px){nav{gap:12px}button{min-width:90px}}
+body{display:grid;grid-template-rows:minmax(0,1fr) 64px}#stage{position:relative;min-height:0;display:grid;place-items:center;overflow:hidden;background:#050505}
+#stage img,#stage video{width:100%;height:100%;object-fit:contain;display:block;min-height:0;background:#050505}#stage>img,#stage>video{position:absolute;inset:0}
+#message{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:32px;background:#080808;color:#d9d9d9;font-size:clamp(18px,2vw,26px);line-height:1.6;z-index:2}#message[hidden]{display:none}#message small{display:block;margin-top:12px;font-size:.7em;color:#9a9a9a}
+nav{position:relative;display:flex;gap:24px;justify-content:center;align-items:center;background:#111;border-top:1px solid #242424}button{font:600 15px Arial,sans-serif;border:1px solid #555;border-radius:6px;background:#242424;color:#fff;min-width:110px;padding:11px 22px;cursor:pointer}button:hover:not(:disabled){background:#383838}button:focus-visible{outline:3px solid #e9c086;outline-offset:3px}button:disabled{opacity:.28;cursor:default}#counter{min-width:106px;text-align:center;font-size:14px;color:#bbb;font-variant-numeric:tabular-nums}
+#offline{position:absolute;right:16px;top:50%;transform:translateY(-50%);max-width:32%;text-align:right;font-size:13px;line-height:1.35;color:#9a9a9a;font-variant-numeric:tabular-nums}#offline.ok{color:#7fd08a}#offline.warn{color:#e9c086}
+@media(max-width:1000px){#offline{position:static;transform:none;max-width:40%}}@media(max-width:500px){nav{gap:12px}button{min-width:90px}}
 </style>
 </head>
 <body>
-<main id="stage" aria-label="Nội dung slide"><div id="message"><div>Nhấn Next để bắt đầu trình chiếu có âm thanh.<small>Mở link sẵn trước giờ chiếu và đợi góc phải báo “✓ Đã lưu offline” để chiếu mượt, không cần mạng.</small></div></div></main>
+<main id="stage" aria-label="Nội dung slide"><div id="message"><div>Nhấn Next để bắt đầu trình chiếu có âm thanh.<small id="hint"></small></div></div></main>
 <nav aria-label="Chuyển slide"><button id="back" disabled>← Back</button><span id="counter" aria-live="polite"></span><button id="next">Next →</button><span id="offline" aria-live="polite"></span></nav>
 <script>
 'use strict';
-const slides=[{"label":"01–03","src":"media/01-03.mp4","type":"video","bytes":46137905},{"label":"04","src":"media/04.png","type":"image","bytes":3265070},{"label":"05","src":"media/05.jpg","type":"image","bytes":410412},{"label":"06","src":"media/06.mp4","type":"video","bytes":68274241},{"label":"07","src":"media/07.mp4","type":"video","bytes":30153012},{"label":"08","src":"media/08.png","type":"image","bytes":4345830},{"label":"09a","src":"media/09a.png","type":"image","bytes":3924322},{"label":"09b","src":"media/09b.png","type":"image","bytes":5153210},{"label":"09c","src":"media/09c.png","type":"image","bytes":1666493},{"label":"09d","src":"media/09d.mp4","type":"video","bytes":23110942},{"label":"10","src":"media/10.mp4","type":"video","bytes":15101480},{"label":"11a","src":"media/11a.png","type":"image","bytes":2847862},{"label":"11b","src":"media/11b.mp4","type":"video","bytes":5566288},{"label":"12a","src":"media/12a.png","type":"image","bytes":3449367},{"label":"12b","src":"media/12b.png","type":"image","bytes":3006273},{"label":"13","src":"media/13.png","type":"image","bytes":4479616},{"label":"14","src":"media/14.png","type":"image","bytes":2858425},{"label":"15a","src":"media/15a.png","type":"image","bytes":2668761},{"label":"15b","src":"media/15b.mp4","type":"video","bytes":10628588},{"label":"16a","src":"media/16a.png","type":"image","bytes":5342545},{"label":"16b","src":"media/16b.mp4","type":"video","bytes":10966223},{"label":"17a","src":"media/17a.png","type":"image","bytes":1975960},{"label":"17b","src":"media/17b.mp4","type":"video","bytes":29389988},{"label":"17c","src":"media/17c.mp4","type":"video","bytes":14546296},{"label":"18","src":"media/18.png","type":"image","bytes":2950154},{"label":"19","src":"media/19.mp4","type":"video","bytes":32942355}];
-const stage=document.getElementById('stage'),message=document.getElementById('message'),back=document.getElementById('back'),next=document.getElementById('next'),counter=document.getElementById('counter');
-let index=0,started=false,current=null,blocked=false,generation=0,preloaded=null,offlineReady=false;
-function status(){counter.textContent=`${index+1} / ${slides.length}`;back.disabled=!started||index===0;next.disabled=started&&!blocked&&index===slides.length-1;}
+const slides=[{"label":"01–03","src":"media/01-03.mp4","type":"video","bytes":46137905},{"label":"04","src":"media/04.png","type":"image","bytes":3265070},{"label":"05","src":"media/05.jpg","type":"image","bytes":410412},{"label":"06","src":"media/06.mp4","type":"video","bytes":68274241},{"label":"07","src":"media/07.mp4","type":"video","bytes":35849979},{"label":"08","src":"media/08.png","type":"image","bytes":4345830},{"label":"09a","src":"media/09a.png","type":"image","bytes":3924322},{"label":"09b","src":"media/09b.png","type":"image","bytes":5153210},{"label":"09c","src":"media/09c.png","type":"image","bytes":1666493},{"label":"09d","src":"media/09d.mp4","type":"video","bytes":27855330},{"label":"10","src":"media/10.mp4","type":"video","bytes":18049697},{"label":"11a","src":"media/11a.png","type":"image","bytes":2847862},{"label":"11b","src":"media/11b.mp4","type":"video","bytes":5566288},{"label":"12a","src":"media/12a.png","type":"image","bytes":3449367},{"label":"12b","src":"media/12b.png","type":"image","bytes":3006273},{"label":"13","src":"media/13.png","type":"image","bytes":4479616},{"label":"14","src":"media/14.png","type":"image","bytes":2858425},{"label":"15a","src":"media/15a.png","type":"image","bytes":2668761},{"label":"15b","src":"media/15b.mp4","type":"video","bytes":10628588},{"label":"16a","src":"media/16a.png","type":"image","bytes":5342545},{"label":"16b","src":"media/16b.mp4","type":"video","bytes":10966223},{"label":"17a","src":"media/17a.png","type":"image","bytes":1975960},{"label":"17b","src":"media/17b.mp4","type":"video","bytes":29389988},{"label":"17c","src":"media/17c.mp4","type":"video","bytes":14546296},{"label":"18","src":"media/18.png","type":"image","bytes":2833536},{"label":"19","src":"media/19.mp4","type":"video","bytes":32942355}],CACHE='hang-chau-804b4077';
+const stage=document.getElementById('stage'),message=document.getElementById('message'),back=document.getElementById('back'),next=document.getElementById('next'),counter=document.getElementById('counter'),offline=document.getElementById('offline');
+const online=location.protocol.startsWith('http');
+let index=0,started=false,current=null,blocked=false,loading=false,generation=0,offlineReady=false;
+const pool=new Map(); // index -> element kept loaded off-screen for the slides around the current one
+function status(){counter.textContent=`${index+1} / ${slides.length}`+(loading?' · đang tải…':'');back.disabled=!started||index===0;next.disabled=started&&!blocked&&index===slides.length-1;}
 function notice(text){message.textContent=text;message.hidden=false;}
-function dispose(){if(!current)return;if(current.tagName==='VIDEO'){current.pause();current.removeAttribute('src');current.load();}else current.removeAttribute('src');current.remove();current=null;}
-function create(i){const s=slides[i],media=document.createElement(s.type==='video'?'video':'img');
+function dispose(media){if(media.tagName==='VIDEO'){media.pause();media.removeAttribute('src');media.load();}else media.removeAttribute('src');media.remove();}
+function create(i){const s=slides[i],media=document.createElement(s.type==='video'?'video':'img');media.dataset.index=i;
+ // loop=false: a finished video keeps its last frame; slides never advance on their own.
  if(s.type==='video'){media.playsInline=true;media.preload='auto';media.controls=false;media.loop=false;media.disablePictureInPicture=true;}
  else{media.alt='Slide '+s.label;media.decoding='async';}
  media.src=encodeURI(s.src);return media;}
-function preload(i){if(preloaded&&preloaded.index!==i){const m=preloaded.media;m.removeAttribute('src');if(m.tagName==='VIDEO')m.load();preloaded=null;}if(i<slides.length&&!preloaded)preloaded={index:i,media:create(i)};}
-function show(i){generation++;const token=generation;dispose();index=i;blocked=false;message.hidden=true;const s=slides[index];
- if(preloaded?.index===i){current=preloaded.media;preloaded=null;}else current=create(i);
- const media=current;stage.prepend(media);
- const fail=()=>{if(token===generation)notice('Không tải được slide '+s.label+'. Kiểm tra mạng rồi nhấn Back và Next để thử lại.');};
- media.addEventListener('error',fail);if(media.tagName==='VIDEO'?media.error:media.complete&&!media.naturalWidth)fail();
- if(s.type==='video'){
-  media.addEventListener('ended',()=>{if(token!==generation)return;media.pause();/* Keep this video element and its decoded final frame. Never advance automatically. */});
-  media.addEventListener('playing',()=>{if(token===generation&&!blocked)message.hidden=true;});
-  if(media.readyState<3)notice('Đang tải slide '+s.label+'…');
-  media.play().catch(()=>{if(token!==generation)return;blocked=true;notice('Trình duyệt đang chặn tự phát. Nhấn Next để phát video này.');status();});
- }
- if(offlineReady)preload(i+1);
+// Resolves once the element can paint its first frame (or failed), so the previous slide stays on screen meanwhile: no black gap.
+function ready(media){
+ const loaded=media.tagName==='IMG'?media.decode().catch(()=>{}):media.readyState>=2||media.error?Promise.resolve():
+  new Promise(r=>{for(const e of ['loadeddata','canplay','seeked','error'])media.addEventListener(e,r,{once:true});});
+ return Promise.race([loaded,new Promise(r=>setTimeout(r,8000))]); // never leave the presenter stuck on the old slide
+}
+// Keep the previous and next slides loaded so Back and Next switch instantly. Online, only once everything is saved locally.
+function neighbours(){if(online&&!offlineReady)return new Set();return new Set((started?[index-1,index+1]:[0]).filter(i=>i>=0&&i<slides.length));}
+function keepNeighbours(){const want=neighbours();
+ for(const [i,m] of pool)if(!want.has(i)){dispose(m);pool.delete(i);}
+ for(const i of want)if(!pool.has(i)&&current?.dataset.index!=i)pool.set(i,create(i));}
+function retire(media){const i=+media.dataset.index;media.remove();
+ if(neighbours().has(i)&&!pool.has(i)){if(media.tagName==='VIDEO'){media.pause();media.currentTime=0;}pool.set(i,media);}else dispose(media);}
+async function show(i){
+ const token=++generation;index=i;blocked=false;loading=false;const s=slides[i];
+ const media=pool.get(i)||create(i);pool.delete(i);
+ if(!media.isConnected)stage.prepend(media); // underneath whatever is on screen now
  status();
+ const slow=setTimeout(()=>{if(token===generation){loading=true;status();}},300);
+ await ready(media);clearTimeout(slow);
+ if(token!==generation)return;
+ loading=false;current=media;message.hidden=true;
+ for(const el of [...stage.querySelectorAll('video,img')])if(el!==media)retire(el);
+ if(media.tagName==='VIDEO'?media.error:!media.naturalWidth)notice('Không tải được slide '+s.label+'. '+(online?'Kiểm tra mạng rồi nhấn Back và Next để thử lại.':'Vui lòng giữ HTML cùng các thư mục ảnh/video.'));
+ else if(media.tagName==='VIDEO')media.play().catch(()=>{if(token!==generation)return;blocked=true;notice('Trình duyệt đang chặn tự phát. Nhấn Next để phát video này.');status();});
+ keepNeighbours();status();
 }
 next.addEventListener('click',()=>{
  if(!started){started=true;show(0);return;}
@@ -47,12 +64,19 @@ next.addEventListener('click',()=>{
  if(index<slides.length-1)show(index+1);
 });
 back.addEventListener('click',()=>{if(started&&index>0)show(index-1);});
-const offline=document.getElementById('offline'),total=slides.reduce((n,s)=>n+s.bytes,0),mb=n=>Math.round(n/1e6);
+// Presentation clickers send arrow / Page keys.
+document.addEventListener('keydown',e=>{
+ if(['ArrowRight','PageDown'].includes(e.key)){e.preventDefault();if(!next.disabled)next.click();}
+ if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();if(!back.disabled)back.click();}
+});
+const total=slides.reduce((n,s)=>n+(s.bytes||0),0),mb=n=>Math.round(n/1e6);
 function offlineStatus(text,cls){offline.textContent=text;offline.className=cls||'';}
+// Online: save every slide into the browser, one file at a time in slide order, so the deck plays smoothly and offline.
 async function saveOffline(){
- if(!('serviceWorker' in navigator)||!window.caches)return;
+ if(!online||!('serviceWorker' in navigator)||!window.caches)return;
+ document.getElementById('hint').textContent='Mở link sẵn trước giờ chiếu và đợi góc phải báo “✓ Đã lưu offline” để chiếu mượt, không cần mạng.';
  try{await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;}catch{return;}
- const cache=await caches.open("hang-chau-24f56d52");let saved=0,count=0;const missing=[];
+ const cache=await caches.open(CACHE);let saved=0,count=0;const missing=[];
  for(const s of slides){if(await cache.match(s.src)){saved+=s.bytes;count++;}else missing.push(s);}
  const progress=()=>offlineStatus(`Đang lưu offline ${count}/${slides.length} · ${mb(saved)}/${mb(total)} MB`);
  if(missing.length){
@@ -69,10 +93,9 @@ async function saveOffline(){
    saved=before+s.bytes;count++;progress();
   }
  }
- offlineReady=true;offlineStatus('✓ Đã lưu offline · chiếu không cần mạng','ok');
- if(!started)preload(0);else if(index<slides.length-1)preload(index+1);
+ offlineReady=true;offlineStatus('✓ Đã lưu offline · chiếu không cần mạng','ok');keepNeighbours();
 }
-status();saveOffline();
+status();keepNeighbours();saveOffline();
 </script>
 </body>
 </html>
