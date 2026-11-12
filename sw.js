@@ -1,21 +1,34 @@
 // Serves saved slides from Cache Storage (with Range support for <video>) so the deck plays smoothly and offline.
 const CACHE="hang-chau-v2";
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.add('./')).then(()=>self.skipWaiting()));});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('hang-chau-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+// When this worker replaces an older one, open pages are reloaded once so they run the new version.
+let replacing=false;
+self.addEventListener('install',e=>{replacing=!!self.registration.active;e.waitUntil(caches.open(CACHE).then(c=>c.add(new Request('./',{cache:'no-cache'}))).then(()=>self.skipWaiting()));});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('hang-chau-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()).then(async()=>{if(replacing)for(const c of await self.clients.matchAll({type:'window'}))c.navigate(c.url);}));});
 self.addEventListener('fetch',e=>{
  const req=e.request;
  if(req.method!=='GET'||new URL(req.url).origin!==location.origin)return;
- e.respondWith(req.mode==='navigate'?page(req):media(req));
+ e.respondWith(req.mode==='navigate'?page(e):media(req));
 });
-// Page: network first (3 s limit, so venue wifi without internet does not hang), saved copy otherwise.
+// Page: network first. If GitHub is slow (3 s) the saved copy opens at once (venue wifi without internet must not hang),
+// but the new page keeps loading and is saved when it arrives; if it differs and arrives within 20 s of opening,
+// the page reloads into it (never later: the presentation may have started).
 // no-cache: always ask GitHub whether the page changed, so a new version is never hidden by the browser's 10-minute cache.
-async function page(req){
- const cache=await caches.open(CACHE);
- try{
-  const r=await Promise.race([fetch(req.url,{cache:'no-cache'}),new Promise((_,reject)=>setTimeout(reject,3000))]);
-  if(r.ok&&!r.redirected)cache.put('./',r.clone());
-  return r;
- }catch{return (await cache.match('./'))||Response.error();}
+async function page(e){
+ const cache=await caches.open(CACHE),opened=Date.now();
+ const network=fetch(e.request.url,{cache:'no-cache'}).then(async r=>{if(r.ok&&!r.redirected)await cache.put('./',r.clone());return r;});
+ const first=await Promise.race([network.catch(()=>'offline'),new Promise(ok=>setTimeout(ok,3000,'slow'))]);
+ if(first instanceof Response&&first.ok)return first;
+ const saved=await cache.match('./');
+ if(!saved)return first instanceof Response?first:network.catch(()=>Response.error());
+ if(first==='slow'){
+  const was=saved.clone().text();
+  e.waitUntil(network.then(async r=>{
+   if(!r.ok||Date.now()-opened>20000||(await r.clone().text())===(await was))return;
+   const client=await self.clients.get(e.resultingClientId);
+   if(client)await client.navigate(client.url);
+  }).catch(()=>{}));
+ }
+ return saved;
 }
 // [start, end] for a Range header against a file of `size` bytes; null without one, 'bad' if unsatisfiable.
 function byteRange(header,size){
